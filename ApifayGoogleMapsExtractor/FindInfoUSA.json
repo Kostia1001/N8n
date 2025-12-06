@@ -1,0 +1,245 @@
+{
+  "name": "FindInfoUSA",
+  "nodes": [
+    {
+      "parameters": {
+        "actorId": {
+          "__rl": true,
+          "value": "WnMxbsRLNbPeYL6ge",
+          "mode": "list",
+          "cachedResultName": "📩📍 Google Maps Email Extractor",
+          "cachedResultUrl": "[https://console.apify.com/actors/WnMxbsRLNbPeYL6ge/input](https://console.apify.com/actors/WnMxbsRLNbPeYL6ge/input)"
+        },
+        "customBody": "{\n    \"language\": \"en\",\n    \"locationQuery\": \"Fresno, California, USA\",\n    \"maxCrawledPlacesPerSearch\": 2,\n    \"searchStringsArray\": [\n        \"Plumber\"\n    ],\n    \"skipClosedPlaces\": true,\n    \"website\": \"withWebsite\"\n}",
+        "waitForFinish": "=true"
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [208, 0],
+      "id": "960431ac-1d75-4397-8fbf-ec2ecb675a92",
+      "name": "Run an Actor",
+      "credentials": {
+        "apifyApi": {
+          "id": "APIFY_CREDENTIAL_ID",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Datasets",
+        "datasetId": "={{ $node[\"Run an Actor\"].json.defaultDatasetId }}",
+        "offset": 0,
+        "limit": 3900
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [416, 0],
+      "id": "c56da158-4f06-4908-a135-063ba64ce0d0",
+      "name": "Get dataset items",
+      "alwaysOutputData": false,
+      "credentials": {
+        "apifyApi": {
+          "id": "APIFY_CREDENTIAL_ID",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "id": "1a0f6ea9-02f3-4a09-9121-7f7456267e79",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_SHEET_ID_PLACEHOLDER",
+          "mode": "list",
+          "cachedResultName": "Home Services Database",
+          "cachedResultUrl": "[https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit](https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Plumbing services",
+          "cachedResultUrl": "[https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=0](https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=0)"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Address": "={{ $json.address }}",
+            "City": "={{ $json.state }}",
+            "Website": "={{ $json.website }}",
+            "Title": "={{ $json.title }}",
+            "Phone": "={{ $json.phoneUnformatted.replace(\"+\", \"\") }}",
+            "Email": "={{ $json.emails && $json.emails.length ? $json.emails.join(\", \") : \"\" }}",
+            "Maps URL": "={{ $json.url }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [640, -240],
+      "id": "44f74906-c980-4050-91d9-69b167fa9a7b",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GSHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "43c95501-f5b8-4787-8b51-cf475d96ffe8",
+              "name": "Title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "6b8b4c66-3974-40a9-8fac-502265358872",
+              "name": "Website",
+              "value": "={{ $json.website }}",
+              "type": "string"
+            },
+            {
+              "id": "982de94c-ef14-4c97-9bcc-1bad1f668887",
+              "name": "Phone",
+              "value": "={{ $json.phoneUnformatted.replace(\"+\", \"\") }}",
+              "type": "string"
+            },
+            {
+              "id": "6ffc37ed-28ed-4cab-85d0-8dbe3cc0d278",
+              "name": "Email",
+              "value": "={{ $json.emails && $json.emails.length ? $json.emails.join(\", \") : \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "14e9738b-ec3b-450c-acd0-69694664023e",
+              "name": "City",
+              "value": "={{ $json.state }}",
+              "type": "string"
+            },
+            {
+              "id": "ad90d44f-537d-4bc2-a342-cbaca5cb1168",
+              "name": "Address",
+              "value": "={{ $json.address }}",
+              "type": "string"
+            },
+            {
+              "id": "a55db532-12fd-4c6b-9144-a4869a2219f9",
+              "name": "Maps URL",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [592, 0],
+      "id": "62d027ac-95d3-40a8-86f3-fa38f4fb39f0",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {
+          "headerRow": true,
+          "sheetName": "Data"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [768, 0],
+      "id": "052ab12a-bade-4861-9a07-b1926e77d8d1",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "/home/node/.n8n/report.xlsx",
+        "options": {
+          "append": false
+        }
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [944, 0],
+      "id": "4112ba1d-7665-4b2b-8594-5436dd5acea4",
+      "name": "Read/Write Files from Disk"
+    }
+  ],
+  "connections": {
+    "Run an Actor": {
+      "main": [
+        [
+          {
+            "node": "Get dataset items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Run an Actor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get dataset items": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

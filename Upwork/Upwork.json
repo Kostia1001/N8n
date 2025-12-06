@@ -1,0 +1,322 @@
+{
+  "name": "Upwork",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [560, -144],
+      "id": "2459bb0e-d8d6-4ec4-8521-46d4e9de910b",
+      "name": "Telegram Trigger",
+      "webhookId": "WEBHOOK_ID_PLACEHOLDER",
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      message: cleanMessage($json[\"message\"][\"text\"]),\n      link: extractLink($json[\"message\"][\"text\"]) || extractLinkFromButtons($json),\n    }\n  }\n];\n\nfunction cleanMessage(text) {\n  const lines = text.split('\\n');\n  const cleanLines = [];\n  let skipRest = false;\n  for (const line of lines) {\n    if (line.includes('📢') || line.includes('⏱️') || line.includes('#️⃣') || line.startsWith('#')) {\n      skipRest = true;\n      continue;\n    }\n    if (cleanLines.length === 0 && (line.includes('ADS') || line.includes('Manage my amazon ads'))) {\n      continue;\n    }\n    if (!skipRest) {\n      cleanLines.push(line);\n    }\n  }\n  return cleanLines.join('\\n').trim();\n}\n\nfunction extractLink(text) {\n  const match = text.match(/https?:\\/\\/www\\.upwork\\.com\\/[^\\s)]+/);\n  return match ? match[0] : null;\n}\n\nfunction extractLinkFromButtons(json) {\n  try {\n    const buttons = json.message.reply_markup.inline_keyboard;\n    if (!buttons) return null;\n    for (const row of buttons) {\n      for (const button of row) {\n        if (button.url && button.url.startsWith('https://www.upwork.com/')) {\n          return button.url;\n        }\n      }\n    }\n    return null;\n  } catch (e) {\n    return null;\n  }\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [800, -144],
+      "id": "e9028403-a0c6-450a-8fff-9169d0d38227",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = items[0].json.output;\nif (typeof inputData !== 'string') {\n  throw new Error('items[0].json.output must be a string');\n}\nlet jsonString = inputData.trim();\nif (jsonString.startsWith('```')) {\n  jsonString = jsonString\n    .replace(/^```[a-zA-Z]*\\n/, '')\n    .replace(/```$/, '')\n    .trim();\n}\nlet jobData;\ntry {\n  jobData = JSON.parse(jsonString);\n} catch (error) {\n  throw new Error('Failed to parse JSON: ' + error.message);\n}\nconst formattedCoverLetter = (jobData.cover_letter || '')\n  .replace(/\\\\n/g, '\\n')\n  .replace(/\\\\t/g, '\\t')\n  .replace(/\\\\\"/g, '\"');\nreturn [\n  {\n    json: {\n      job_text: jobData.job_text || '',\n      cover_letter: formattedCoverLetter,\n      budget: jobData.budget || '',\n      link: jobData.link || ''\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1968, -144],
+      "id": "ea7436e6-298c-4d6e-8993-d59c46690438",
+      "name": "Check Vacancy",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "chatId": "TELEGRAM_CHAT_ID_PLACEHOLDER",
+        "text": "=📬 *New Vacancy!*\n\n📝 *Description:* \n{{ $json[\"job_text\"] }}\n\n✉️ *Cover letter:* \n{{ $json.cover_letter }}\n\n🔗 [Link]({{ $json.link }})\n\n💵 {{ $json[\"budget\"] }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2208, -144],
+      "id": "3751e7a8-98e5-42b1-9cd9-41e647ba1a78",
+      "name": "Send a text message",
+      "webhookId": "WEBHOOK_ID_PLACEHOLDER",
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [1520, 112],
+      "id": "38393f57-bbe3-4d4b-9640-4d46e1f56d63",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "OPENAI_CREDENTIAL_ID",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$json[\"message\"]}}\nLINK: {{$json[\"link\"]}}",
+        "options": {
+          "systemMessage": "You are a STRICT vacancy filter..."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [1024, -144],
+      "id": "aa9aed6c-fa62-47fd-832a-e858c6d257ea",
+      "name": "AI filter"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={\n  \"message\": \"{{ $('Code').item.json.message }}\",\n  \"link\": \"{{ $('Code').item.json.link }}\"\n}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an expert performance marketer..."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [1600, -144],
+      "id": "17109832-7d1f-4eb2-9d2a-5472d44a8c13",
+      "name": "generate cover"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [896, 80],
+      "id": "cca1770f-1591-4ac6-bbf5-6246586933cc",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "OPENAI_CREDENTIAL_ID",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output;\ntry {\n  const parsed = JSON.parse(raw);\n  if (!parsed.allowed) {\n    return;\n  }\n  return [\n    {\n      json: {\n        job_text: parsed.job_text,\n        budget: parsed.budget,\n        link: parsed.link\n      }\n    }\n  ];\n} catch (err) {\n  return;\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1280, -144],
+      "id": "0286f177-0b47-4a82-b033-fd90c0e0e0c3",
+      "name": "Code in JavaScript",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_SHEET_ID_PLACEHOLDER",
+          "mode": "list",
+          "cachedResultName": "Letters",
+          "cachedResultUrl": "[https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit](https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "reference_letters",
+          "cachedResultUrl": "[https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=0](https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=0)"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [1680, 96],
+      "id": "7fc9950c-a7f5-46a3-858b-83e261628e44",
+      "name": "letters",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GSHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_SHEET_ID_PLACEHOLDER",
+          "mode": "list",
+          "cachedResultName": "Portfolio",
+          "cachedResultUrl": "[https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit](https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 578308242,
+          "mode": "list",
+          "cachedResultName": "portfolio_links",
+          "cachedResultUrl": "[https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=578308242](https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=578308242)"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [1856, 112],
+      "id": "16b74b3d-da9f-4083-b262-45ae64c3749d",
+      "name": "portfolio",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GSHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "AI filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Vacancy": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "generate cover",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [[]]
+    },
+    "AI filter": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "generate cover": {
+      "main": [
+        [
+          {
+            "node": "Check Vacancy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI filter",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "generate cover",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "letters": {
+      "ai_tool": [
+        [
+          {
+            "node": "generate cover",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "portfolio": {
+      "ai_tool": [
+        [
+          {
+            "node": "generate cover",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

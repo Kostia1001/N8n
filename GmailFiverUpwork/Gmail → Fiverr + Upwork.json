@@ -1,0 +1,608 @@
+{
+  "name": "Gmail → Fiverr + Upwork",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyHour",
+              "minute": 59
+            }
+          ]
+        }
+      },
+      "id": "e252975d-42a4-4884-a219-032c1634da6a",
+      "name": "1",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [-768, 32]
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyHour",
+              "minute": 59
+            }
+          ]
+        }
+      },
+      "id": "dafd15f0-73d5-4a04-8edf-b5435e7a49f4",
+      "name": "2",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [-768, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.from.value[0].address }}",
+              "operation": "contains",
+              "value2": "noreply@e.fiverr.com"
+            }
+          ]
+        }
+      },
+      "id": "720bf9a1-e729-462f-8a26-8f8a7776d571",
+      "name": "IF Fiverr?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [176, 32]
+    },
+    {
+      "parameters": {
+        "chatId": "TELEGRAM_CHAT_ID_PLACEHOLDER",
+        "text": "=📩 Fiverr Account 1\n\n👤 From:{{ $json.client_username }}\n\n💬 Message: \n{{ $json.client_messages }}\n",
+        "additionalFields": {}
+      },
+      "id": "816e928f-91f8-4370-932e-a226dfd9f7b4",
+      "name": "Telegram Fiverr",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [784, -128],
+      "webhookId": "WEBHOOK_ID_PLACEHOLDER",
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $json.email_id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [576, -304],
+      "id": "a37ebc22-12e4-479d-9067-11613814046c",
+      "name": "Mark a message as read",
+      "webhookId": "WEBHOOK_ID_PLACEHOLDER",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID_1",
+          "name": "Gmail account 1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $json.email_id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [576, 96],
+      "id": "443e80bc-7b9a-4b07-93b8-10ef6836b92a",
+      "name": "Mark a message as read1",
+      "webhookId": "WEBHOOK_ID_PLACEHOLDER",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID_2",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [-128, 16],
+      "id": "1fe83811-cf0a-4886-8506-8de131a4ea00",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [944, 48],
+      "id": "93a9c165-5ddd-4acf-9549-fc3483b41e5b"
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = $json.html || \"\";\nlet blocks = html.match(/<p[^>]*>(.*?)<\\/p>/gs) || [];\nblocks = blocks.map(b =>\n  b\n    .replace(/<\\/?p[^>]*>/g, \"\")\n    .replace(/<[^>]+>/g, \"\")\n    .replace(/&nbsp;/g, \" \")\n    .trim()\n);\nconst systemPatterns = [\n  /^hi user/i,\n  /sent you messages/i,\n  /new messages/i,\n  /unsubscribe/i,\n  /© fiverr/i,\n  /fiverr international/i,\n  /account security/i,\n  /online safety/i,\n  /go to your inbox/i,\n  /^this email was intended/i,\n  /learn about/i,\n  /^[\\s\\r\\n]*$/ \n];\nfunction isSystemText(text) {\n  return systemPatterns.some(p => p.test(text.toLowerCase()));\n}\nlet clientMessages = blocks.filter(t => t && !isSystemText(t));\nfunction safeText(t) {\n  return t\n    .replace(/[*_`~>|#{}[\\]()]/g, \"\")\n    .replace(/<\\/?[^>]+>/g, \"\")\n    .replace(/\\u202E|\\u202D|\\u202C/g, \"\")\n    .replace(/&[a-z]+;/gi, \"\")\n    .trim();\n}\nclientMessages = clientMessages.map(safeText);\nconst chatMatch = html.match(/https:\\/\\/www\\.fiverr\\.com\\/inbox\\/[^\"]+/);\nconst chatLink = chatMatch ? chatMatch[0] : null;\nlet username = null;\nif ($json.subject) {\n  const m = $json.subject.match(/from ([A-Za-z0-9_]+)/i);\n  if (m) username = m[1];\n}\nreturn [\n  {\n    client_username: safeText(username || \"\"),\n    client_messages: clientMessages,\n    chat_link: chatLink,\n    email_id: $json.id,\n    subject: safeText($json.subject || \"\")\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [384, -128],
+      "id": "bc7acbad-4320-4a3c-93fb-b735bfa03f04",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [-128, 304],
+      "id": "e664124a-9b4d-4d6b-9baa-db32ddd1ca51",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me1",
+      "typeVersion": 1,
+      "position": [992, 336],
+      "id": "ca729302-a192-47be-87c6-0afdfccf4172"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.from.value[0].address }}",
+              "operation": "contains",
+              "value2": "noreply@e.fiverr.com"
+            }
+          ]
+        }
+      },
+      "id": "da2597ed-6e33-4797-bf15-d64eab6eec78",
+      "name": "IF fiverr",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [176, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = $json.html || \"\";\nlet blocks = html.match(/<p[^>]*>(.*?)<\\/p>/gs) || [];\nblocks = blocks.map(b =>\n  b\n    .replace(/<\\/?p[^>]*>/g, \"\")\n    .replace(/<[^>]+>/g, \"\")\n    .replace(/&nbsp;/g, \" \")\n    .trim()\n);\nconst systemPatterns = [\n  /^hi user/i,\n  /sent you messages/i,\n  /new messages/i,\n  /unsubscribe/i,\n  /© fiverr/i,\n  /fiverr international/i,\n  /account security/i,\n  /online safety/i,\n  /go to your inbox/i,\n  /^this email was intended/i,\n  /learn about/i,\n  /^[\\s\\r\\n]*$/ \n];\nfunction isSystemText(text) {\n  return systemPatterns.some(p => p.test(text.toLowerCase()));\n}\nlet clientMessages = blocks.filter(t => t && !isSystemText(t));\nfunction safeText(t) {\n  return t\n    .replace(/[*_`~>|#{}[\\]()]/g, \"\")\n    .replace(/<\\/?[^>]+>/g, \"\")\n    .replace(/\\u202E|\\u202D|\\u202C/g, \"\")\n    .replace(/&[a-z]+;/gi, \"\")\n    .trim();\n}\nclientMessages = clientMessages.map(safeText);\nconst chatMatch = html.match(/https:\\/\\/www\\.fiverr\\.com\\/inbox\\/[^\"]+/);\nconst chatLink = chatMatch ? chatMatch[0] : null;\nlet username = null;\nif ($json.subject) {\n  const m = $json.subject.match(/from ([A-Za-z0-9_]+)/i);\n  if (m) username = m[1];\n}\nreturn [\n  {\n    client_username: safeText(username || \"\"),\n    client_messages: clientMessages,\n    chat_link: chatLink,\n    email_id: $json.id,\n    subject: safeText($json.subject || \"\")\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [368, 240],
+      "id": "556871c0-7db5-4abb-8f66-80c8d200906f",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "getAll",
+        "additionalFields": {
+          "format": "resolved",
+          "q": "=is:unread from:fiverr.com"
+        }
+      },
+      "id": "357f41a8-8e7b-40b9-a38f-6a533d474557",
+      "name": "Account1Fiverr",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [-496, 16],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID_1",
+          "name": "Gmail account 1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "getAll",
+        "additionalFields": {
+          "q": "=is:unread from:fiverr.com"
+        }
+      },
+      "id": "9e57b0bf-d433-40d1-853a-4ad3f3f4db79",
+      "name": "Account2Fiverr",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [-496, 304],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID_2",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyHour",
+              "minute": 59
+            }
+          ]
+        }
+      },
+      "id": "6c06c19e-4e4a-4236-81e5-ece5c08add04",
+      "name": "2-2",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [-752, 560]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "getAll",
+        "additionalFields": {
+          "q": "=is:unread from:upwork.com"
+        }
+      },
+      "id": "46158307-25fe-4b28-8cbe-4c82d5317d07",
+      "name": "Gmail Get Many",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [-496, 560],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID_2",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [-144, 560],
+      "id": "70051cba-2ff4-4c48-bfbd-1936550418ec",
+      "name": "Loop Over Items3"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me3",
+      "typeVersion": 1,
+      "position": [992, 640],
+      "id": "d6825342-d6f3-4c32-b829-7bbd9048f53e"
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $json.messageId }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [576, 400],
+      "id": "80459589-1611-401e-98ed-083207330a80",
+      "name": "Mark a message as read3",
+      "webhookId": "WEBHOOK_ID_PLACEHOLDER",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID_2",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const email = item.json;\n  const headers = email.headers || {};\n  const html = email.html || email.textHtml || '';\n  let senderName = null;\n  const nameMatch = html.match(\n    /<td[^>]*font-size:22px[^>]*>\\s*<a[^>]*>([^<]+)<\\/a>/i\n  );\n  if (nameMatch) {\n    senderName = nameMatch[1].trim();\n  } else {\n    const fromHeader = headers.from || '';\n    const viaMatch = fromHeader.match(/\"([^\"]+?) via Upwork\"/i);\n    if (viaMatch) {\n      senderName = viaMatch[1].trim();\n    }\n  }\n  const parts = [];\n  const re = /<td[^>]*font-size:16px[^>]*padding-bottom:\\s*10px;[^>]*>\\s*([^<]+?)<\\/td>/gi;\n  let m;\n  while ((m = re.exec(html)) !== null) {\n    let text = m[1];\n    text = text\n      .replace(/&#039;/g, \"'\")\n      .replace(/&amp;/g, \"&\")\n      .replace(/&quot;/g, '\"')\n      .replace(/&lt;/g, \"<\")\n      .replace(/&gt;/g, \">\");\n    parts.push(text.trim());\n  }\n  const messageText = parts.join('\\n').trim();\n  const messageId = email.id || null;\n  return {\n    json: {\n      senderName,\n      messageText,\n      messageId\n    },\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [176, 576],
+      "id": "f39774d1-456e-431a-893d-bdc3b38a9980",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "chatId": "TELEGRAM_CHAT_ID_PLACEHOLDER",
+        "text": "=📩 Fiverr Account 2\n\n👤 From:{{ $json.client_username }}\n\n💬 Message: \n{{ $json.client_messages }}\n",
+        "additionalFields": {}
+      },
+      "id": "2381d00f-394f-4c21-91a4-da054e597f1a",
+      "name": "Telegram Fiverr Account 2",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [784, 240],
+      "webhookId": "WEBHOOK_ID_PLACEHOLDER",
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "TELEGRAM_CHAT_ID_PLACEHOLDER",
+        "text": "=📩 !!!UWORK!!! Account 2\n\n👤 From:{{ $json.senderName }}\n\n💬 Message: \n{{ $json.messageText }}\n",
+        "additionalFields": {}
+      },
+      "id": "e6a65d72-4920-4f8d-a06f-94ab2b525557",
+      "name": "Telegram Upwork",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [784, 576],
+      "webhookId": "WEBHOOK_ID_PLACEHOLDER",
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram account 2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "1": {
+      "main": [
+        [
+          {
+            "node": "Account1Fiverr",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2": {
+      "main": [
+        [
+          {
+            "node": "Account2Fiverr",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Fiverr?": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "IF Fiverr?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark a message as read": {
+      "main": [[]]
+    },
+    "Telegram Fiverr": {
+      "main": [
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Telegram Fiverr",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Mark a message as read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "IF fiverr",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF fiverr": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Replace Me1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Mark a message as read1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram Fiverr Account 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark a message as read1": {
+      "main": [[]]
+    },
+    "Account1Fiverr": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Account2Fiverr": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2-2": {
+      "main": [
+        [
+          {
+            "node": "Gmail Get Many",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Get Many": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items3": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me3": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Mark a message as read3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram Upwork",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Fiverr Account 2": {
+      "main": [
+        [
+          {
+            "node": "Replace Me1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Upwork": {
+      "main": [
+        [
+          {
+            "node": "Replace Me3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

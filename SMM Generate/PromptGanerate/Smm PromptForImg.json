@@ -1,0 +1,484 @@
+{
+  "name": "Smm PromptForImg",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Topic: {{ $json.Topic }}\n\nPost text:\n{{ $json[\"The truth?\"] }}\n\nRow number:\n{{ $json.row_number }}",
+        "options": {
+          "systemMessage": "=You are a senior art director..."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [624, 0],
+      "id": "e99a4231-3459-44b2-bfaf-8affc1b1557d",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [432, 240],
+      "id": "73f6f40a-d7fa-4a20-ac12-0406633177ae",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "OPENAI_CREDENTIAL_ID",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_SHEET_ID_PLACEHOLDER",
+          "mode": "list",
+          "cachedResultName": "SMM",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "content",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Reference": "={{ $json.designer_tasks }}",
+            "row_number": "={{ $json.row_number }}"
+          },
+          "matchingColumns": ["row_number"],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [1424, 0],
+      "id": "3a74a9d7-96f1-4cfa-ab83-593a92a0ecb6",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GSHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-208, 144],
+      "id": "55578dc2-b12f-4698-a585-262ed2a03dc2",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_SHEET_ID_PLACEHOLDER",
+          "mode": "list",
+          "cachedResultName": "SMM",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "content",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Reference"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [-336, -16],
+      "id": "689ce4c3-562c-4852-bbba-aa8f86f76e61",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GSHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "maxItems": 5
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [-144, -16],
+      "id": "7666d520-a6a5-4353-a238-a2f6dcce9279",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [112, -16],
+      "id": "7ca5d344-5b2f-45b5-881d-350383c5b327",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_SHEET_ID_PLACEHOLDER",
+          "mode": "list",
+          "cachedResultName": "SMM",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1466088657,
+          "mode": "list",
+          "cachedResultName": "PromptImg",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=1466088657"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "prompt": "={{ $json.output }}",
+            "row_number": "={{ $('Limit').item.json.row_number }}"
+          },
+          "matchingColumns": ["row_number"],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [1632, 272],
+      "id": "03f73df1-bc78-4c77-8c88-0daf6659769d",
+      "name": "Update row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GSHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "slide_content"
+            }
+          ]
+        },
+        "options": {
+          "includeBinaries": false
+        }
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [1680, -128],
+      "id": "805fa6b3-59bf-451b-b603-54415445c9ab",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code Node - Preserve original output formatting\nconst items = [];\n\n// Process each input item\nfor (let itemIndex = 0; itemIndex < $input.all().length; itemIndex++) {\n  const inputItem = $input.all()[itemIndex];\n  \n  if (inputItem.json && inputItem.json.output) {\n    let parsed;\n    try {\n      parsed = JSON.parse(inputItem.json.output);\n    } catch (e) {\n      const cleaned = inputItem.json.output\n        .replace(/\\\\u0000/g, '')\n        .replace(/\\r/g, '')\n        .replace(/\\t/g, '');\n      try {\n        parsed = JSON.parse(cleaned);\n      } catch {\n        parsed = null;\n      }\n    }\n    \n    if (parsed && parsed.slides && Array.isArray(parsed.slides)) {\n      parsed.slides.forEach((slide, slideIndex) => {\n        items.push({\n          json: {\n            prompt: slide.prompt || '',\n            designer_text: slide.designer_text || '',\n            designer_task: slide.designer_task || '',\n            original_item_index: itemIndex,\n            slide_index: slideIndex + 1\n          }\n        });\n      });\n    }\n  }\n}\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1856, 160],
+      "id": "d7c3e955-fc66-4616-9e2a-4fdfe20fd9fc",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ====== INPUT ======\nconst input = $input.all()[0].json;\n\n// ====== STEP 1: Parse JSON ======\nlet parsed = null;\nif (input.output && typeof input.output === 'string') {\n  try {\n    const match = input.output.match(/```json\\s*([\\s\\S]*?)```/);\n    if (match && match[1]) {\n      parsed = JSON.parse(match[1]);\n    } else {\n      parsed = JSON.parse(input.output);\n    }\n  } catch (e) {\n    console.log('Error parsing JSON:', e.message);\n  }\n} else {\n  parsed = input;\n}\n\n// ====== STEP 2: Extract row_number and slides ======\nconst rowNumber = parsed?.row_number ?? null;\nconst slides = parsed?.slides ?? [];\n\n// ====== STEP 3: Format text for designer ======\nlet text = [];\nif (slides.length > 0) {\n  slides.forEach((slide, i) => {\n    text.push('-'.repeat(50));\n    text.push(`SLIDE ${i + 1}: ${slide.slide_title || 'Untitled'}`);\n    text.push('-'.repeat(50));\n    text.push(`Title: ${slide.slide_title || '—'}`);\n    text.push(`Subtitle: ${slide.slide_subtitle || '—'}`);\n    text.push('');\n    text.push('Content:');\n    if (Array.isArray(slide.content)) {\n      slide.content.forEach(line => text.push(`  • ${line}`));\n    } else {\n      text.push(`  • ${slide.content || '—'}`);\n    }\n    text.push('');\n    text.push(`Visual guidance: ${slide.visual_guidance || '—'}`);\n    text.push(`Colors: ${JSON.stringify(slide.color_palette) || '—'}`);\n    text.push(`Icons: ${Array.isArray(slide.icons_elements) ? slide.icons_elements.join(', ') : slide.icons_elements || '—'}`);\n    text.push('');\n    text.push(`Layout: ${slide.layout_approach || '—'}`);\n    text.push(`Typography: ${slide.typography_style || '—'}`);\n    text.push(`CTA: ${slide.cta_guidance || '—'}`);\n    text.push('');\n  });\n} else {\n  text.push('❌ No slides array found.');\n}\n\n// ====== STEP 4: Output for Google Sheets ======\nreturn [\n  {\n    json: {\n      row_number: rowNumber,\n      designer_tasks: text.join('\\n'),\n      slides_count: slides.length,\n      success: slides.length > 0\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 0],
+      "id": "48be4be0-19ea-43d4-bc5f-7424cdb15543",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=You are a professional translator..."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [1888, -128],
+      "id": "a0a55fc9-d631-4573-8a39-2bb89b764e29",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "OPENAI_CREDENTIAL_ID",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "**storytelling_elements:**\n- Hero's journey...\n\n**psychological_triggers:**\n- Social proof...\n\n**trending_visual_approaches:**\n- Glassmorphism...",
+        "options": {
+          "systemMessage": "You are a Creative Reference Tool..."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 2.2,
+      "position": [1136, 288],
+      "id": "78430338-1a5c-4871-9ac2-80579bbfb817",
+      "name": "AI Agent Tool"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [656, 416],
+      "id": "7ce4638d-c386-4d0c-8e2e-01dff16f60d3",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "OPENAI_CREDENTIAL_ID",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "row_number"
+            },
+            {
+              "fieldToAggregate": "designer_tasks"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [1248, -128],
+      "id": "3998068b-eff6-4a0f-9950-6d0da3baa221",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_SHEET_ID_PLACEHOLDER",
+          "mode": "list",
+          "cachedResultName": "SMM",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1463244182,
+          "mode": "list",
+          "cachedResultName": "Creative_Refs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_ID_PLACEHOLDER/edit#gid=1463244182"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [880, 240],
+      "id": "61a14f0c-eb4a-4200-8c9f-680e5a0b4f3a",
+      "name": "Get row(s) in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GSHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet1": {
+      "main": [[]]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [[]]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [[]]
+    },
+    "AI Agent Tool": {
+      "ai_tool": [[]]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent Tool",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [[]]
+    },
+    "Get row(s) in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
